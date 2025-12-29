@@ -33,12 +33,20 @@ function setupEventListeners() {
 async function loadTasks() {
     try {
         const response = await fetch(API_URL);
-        tasks = await response.json();
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        // Ensure data is an array
+        tasks = Array.isArray(data) ? data : [];
         renderTasks();
         updateStats();
     } catch (error) {
         console.error('Error loading tasks:', error);
-        alert('Failed to load tasks. Please refresh the page.');
+        tasks = [];
+        renderTasks();
+        updateStats();
+        alert('Failed to load tasks: ' + error.message);
     }
 }
 

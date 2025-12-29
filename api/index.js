@@ -24,15 +24,19 @@ app.use((req, res, next) => {
 let cachedDb = null;
 
 async function connectToDatabase() {
-  if (cachedDb) {
+  if (cachedDb && mongoose.connection.readyState === 1) {
     return cachedDb;
   }
 
-  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/taskmanager';
+  const MONGODB_URI = process.env.MONGODB_URI;
+  
+  if (!MONGODB_URI) {
+    throw new Error('MONGODB_URI environment variable is not defined');
+  }
   
   try {
     const connection = await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
+      bufferCommands: false,
     });
     cachedDb = connection;
     console.log('✅ Connected to MongoDB');
@@ -50,10 +54,10 @@ app.get('/api/tasks', async (req, res) => {
   try {
     await connectToDatabase();
     const tasks = await Task.find().sort({ createdAt: -1 });
-    res.json(tasks);
+    return res.status(200).json(tasks);
   } catch (error) {
     console.error('Error fetching tasks:', error);
-    res.status(500).json({ message: error.message, error: 'Failed to fetch tasks' });
+    return res.status(500).json({ message: error.message, error: 'Failed to fetch tasks', tasks: [] });
   }
 });
 
